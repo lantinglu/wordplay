@@ -16,11 +16,12 @@
     import CreatorView from './CreatorView.svelte';
     import Link from './Link.svelte';
     import Spinning from './Spinning.svelte';
-    // new added
     import type { Character } from '../../db/characters/Character';
     import { characterToSVG } from '../../db/characters/Character';
     import ConceptLink, { CharacterName } from '../../nodes/ConceptLink';
     import MarkupValue from '../../values/MarkupValue';
+    import Value from '../../values/Value';
+    import StructureValue from '@values/StructureValue';
 
     interface Props {
         project: Project;
@@ -36,7 +37,7 @@
         showCollaborators?: boolean;
     }
 
-    function findCharacterName(value: unknown): string | null {
+    function findCharacterName(value: Value): string | null {
         // If it's a MarkupValue, check for character links
         if (value instanceof MarkupValue) {
             const nodes = value.markup.nodes();
@@ -51,24 +52,13 @@
         }
 
         // If it's a StructureValue, check all its fields recursively
-        if (
-            value &&
-            value.constructor &&
-            value.constructor.name === 'StructureValue' &&
-            (value as any).context &&
-            (value as any).context.getBindingsByNames
-        ) {
-            const structureValue = value as any;
-            // Get all bindings from the context
-            const bindings = structureValue.context.getBindingsByNames();
-
-            // Loop through each binding and check if it contains a character name
-            for (const [_, fieldValue] of bindings) {
-                const result = findCharacterName(fieldValue);
-                if (result) return result;
+        if (value instanceof StructureValue) {
+            const bindings = value.context.getBindingsByNames();
+            for (const [, fieldValue] of bindings) {
+            const result = findCharacterName(fieldValue);
+            if (result) return result;
             }
         }
-
         return null;
     }
 
@@ -89,7 +79,6 @@
         representativeBackground: string | null;
         representativeFace: string | null;
         representativeText: string;
-        isCustomCharacter: boolean;
         characterName: string | null;
     };
 
@@ -99,7 +88,6 @@
         representativeBackground,
         representativeFace,
         representativeText,
-        isCustomCharacter,
         characterName,
     }: Preview = $derived.by(() => {
         const evaluator = new Evaluator(
@@ -112,14 +100,14 @@
         evaluator.stop();
 
         // First, check if there's a character name in the value
-        const foundCharacterName = findCharacterName(value);
+        const foundCharacterName = value ? findCharacterName(value) : null;
+        
         if (foundCharacterName) {
             return {
                 representativeForeground: null,
                 representativeBackground: null,
                 representativeFace: null,
                 representativeText: '',
-                isCustomCharacter: true,
                 characterName: foundCharacterName,
             };
         }
@@ -145,7 +133,6 @@
                 : value
                   ? value.getRepresentativeText($locales)
                   : EXCEPTION_SYMBOL,
-            isCustomCharacter: false,
             characterName: null,
         };
     });
@@ -156,14 +143,8 @@
     // Effect to fetch the character from the database when characterName changes
     $effect(() => {
         // Clear character if characterName is not valid
-        if (!isCustomCharacter || !characterName) {
+        if (!characterName) {
             character = null;
-            return;
-        }
-
-        // Make sure DB.Characters exists and has getByName method
-        if (!DB.Characters || typeof DB.Characters.getByName !== 'function') {
-            console.error('DB.Characters or getByName method not available');
             return;
         }
 
@@ -177,7 +158,7 @@
                 }
             })
             .catch((error) => {
-                console.error('bug', error);
+                console.error('Failed to load character:', characterName, error);
                 character = null;
             });
     });

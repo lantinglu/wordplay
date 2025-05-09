@@ -3,6 +3,19 @@
 We'll note all notable changes in this file, including bug fixes, enhancements, and all closed issues.
 Dates are in `YYYY-MM-DD` format and versions are in [semantic versioning](http://semver.org/) format.
 
+## 0.1.6.13
+
+## Fixed
+
+- Fixed #723 regression of tile dragging in free layout.
+- Fixed #740, resolving stuck tutorial advance button when guide is open.
+- Fixed #750 only handle keyboard shortcuts when editor is focused.
+- Added choose your own adventure how to.
+
+## Maintennace
+
+- Updated minor versions of Playwright, SvelteKit, Eslint, Firebase, Svelte, Vite, Vitest, and Zod.
+
 ## 0.16.12
 
 ## Added
